@@ -1,2 +1,5 @@
-# docker-latex-compiler
-A docker latex compiler
+# latex-compiler
+A Docker latex compiler
+
+---
+Inspired by [richardbronosky/latex-compiler](https://hub.docker.com/r/richardbronosky/latex-compiler/)
