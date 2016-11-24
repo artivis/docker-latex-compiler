@@ -1,0 +1,87 @@
+#!/usr/bin/env bash
+
+output_path=$(pwd)
+
+# container_id=42
+container_id=$(docker run -d -t local/latex-compiler bash)
+
+docker cp -L $1 ${container_id}:/data
+
+docker exec ${container_id} bash -c "cd /data/$1 && \
+                                     make > makelog.log && \
+                                     PDF_FILES=$(find -name \*.pdf -print) && \
+                                     tar -zcvf ../output_pdf.tar.gz \
+                                     ${PDF_FILES} makelog.log &>/dev/null"
+
+docker cp ${container_id}:/data/$1/output_pdf.tar.gz ${output_path}/
+
+docker stop ${container_id} &>/dev/null
+
+cd ${output_path}
+tar_out=$(tar -zxvf output_pdf.tar.gz)
+rm output_pdf.tar.gz
+
+chown -R <user>: ${tar_out}
+
+echo "Done."
+echo "Output files :"
+echo ${tar_out}
+
+# generate() {
+#     # generate PDF capturing stdout and stderr in a log file
+#     pdflatex --interaction=nonstopmode $sourcefile &>latexcat.log
+# }
+#
+# # make and enter a temporary directory
+# # cd $(mktemp -d)
+# mkdir -p output
+# cd output
+#
+# # write stdin to a file
+# cat /dev/stdin > ../sourcefile
+#
+# MAKEFILE="Makefile"
+#
+# # determine the type of the source file
+# if file -b ../sourcefile | grep -q "gzip compressed data"; then
+#   tarfile=1
+#   tar -zxvf ../sourcefile &>/dev/null
+#   cd *
+#   # find the make file
+#   if [ -f $MAKEFILE ]; then
+#     echo "make file exists"
+#     make &>makelatexcat.log
+#   else
+#     # find the latex files
+#     echo "File $MAKEFILE does not exist."
+#     for sourcefile in $(grep -Ild skip '^\\documentclass' *); do
+#       generate
+#     done
+#   fi
+# else
+#   sourcefile="../sourcefile"
+#   generate
+# fi
+#
+# if [[ -n $tarfile ]]; then
+#   # check for more than 1 pdf
+#   if [[ $(ls -1 *.pdf | wc -l) -gt 1 ]] && [[ $1 != "--debug" ]]; then
+#     # force tar ouput
+#     set -- "--tar"
+#   fi
+# fi
+#
+# # send log to stdout
+# if [[ $1 == "--debug" ]]; then
+#   cat makelatexcat.log
+#   cat latexcat.log
+#   echo;
+#   ls -l;
+# # send tar to stdout
+# elif [[ $1 == "--tar" ]]; then
+#   cd ..
+#   tar -zcvf $(find -name \*.pdf -print) - output
+# # send PDF to stdout
+# else
+#   cat *.pdf
+# fi
